@@ -3,7 +3,7 @@ import { Category, Transaction, ReceiptData, Budget, InsightData, SubscriptionAn
 
 // Use Vite environment variable for browser environment
 const apiKey = (import.meta as any).env?.VITE_GOOGLE_API_KEY || '';
-const ai = new GoogleGenerativeAI({ apiKey });
+const ai = new GoogleGenerativeAI(apiKey);
 
 // Helper to convert blob/file to base64
 export const fileToGenerativePart = async (file: File): Promise<string> => {
@@ -11,8 +11,16 @@ export const fileToGenerativePart = async (file: File): Promise<string> => {
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
+      if (!base64String) {
+        reject(new Error("Failed to read file"));
+        return;
+      }
       // Remove data url part
       const base64Data = base64String.split(',')[1];
+      if (!base64Data) {
+        reject(new Error("Invalid base64 data"));
+        return;
+      }
       resolve(base64Data);
     };
     reader.onerror = reject;
@@ -27,6 +35,10 @@ export const compressImage = async (file: File, maxWidth = 800, quality = 0.6): 
     reader.onload = (event) => {
       const img = new Image();
       img.src = event.target?.result as string;
+      if (!img.src) {
+        reject(new Error("Failed to load image"));
+        return;
+      }
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let width = img.width;
@@ -48,8 +60,17 @@ export const compressImage = async (file: File, maxWidth = 800, quality = 0.6): 
         
         // Get data URL
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        if (!dataUrl || !dataUrl.includes(',')) {
+          reject(new Error("Failed to compress image"));
+          return;
+        }
         // Return only the base64 data part
-        resolve(dataUrl.split(',')[1]);
+        const base64Data = dataUrl.split(',')[1];
+        if (!base64Data) {
+          reject(new Error("Invalid compressed image data"));
+          return;
+        }
+        resolve(base64Data);
       };
       img.onerror = (error) => reject(error);
     };
