@@ -1,9 +1,9 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Category, Transaction, ReceiptData, Budget, InsightData, SubscriptionAnalysis, Bill } from "../types";
 
 // Support both Process Env (Node/Webpack) and Import Meta (Vite)
 const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GOOGLE_API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenerativeAI({ apiKey });
 
 // Helper to convert blob/file to base64
 export const fileToGenerativePart = async (file: File): Promise<string> => {
@@ -59,38 +59,23 @@ export const compressImage = async (file: File, maxWidth = 800, quality = 0.6): 
 
 export const parseReceiptImage = async (base64Image: string): Promise<ReceiptData> => {
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: 'image/jpeg', // Assuming jpeg/png, API is flexible with common image types
-              data: base64Image
-            }
-          },
-          {
-            text: `Analyze this receipt image. Extract the total amount, the date, and the merchant name (use as description). 
-            Also infer the most likely category from this list: Food, Transport, Utilities, Entertainment, Shopping, Health, Travel, Bills, Other.
-            Return JSON.`
-          }
-        ]
-      },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            amount: { type: Type.NUMBER },
-            date: { type: Type.STRING, description: "YYYY-MM-DD format" },
-            merchant: { type: Type.STRING },
-            category: { type: Type.STRING, enum: Object.values(Category) }
-          }
-        }
-      }
-    });
+    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    
+    const prompt = `Analyze this receipt image. Extract the total amount, the date, and the merchant name (use as description). 
+    Also infer the most likely category from this list: Food, Transport, Utilities, Entertainment, Shopping, Health, Travel, Bills, Other.
+    Return JSON with the following structure: {"amount": number, "date": "YYYY-MM-DD format", "merchant": "string", "category": "string"}`;
 
-    const text = response.text;
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: base64Image
+        }
+      },
+      prompt
+    ]);
+
+    const text = result.response.text();
     if (!text) return {};
     return JSON.parse(text) as ReceiptData;
   } catch (error) {
@@ -122,61 +107,45 @@ export const getSpendingInsights = async (transactions: Transaction[], budgets: 
   const comparisonText = `This week total: ₹${thisWeekTotal}. Last week total: ₹${lastWeekTotal}.`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `You are a smart financial AI. Analyze these transactions and budgets.
-      
-      Context:
-      ${comparisonText}
-      
-      Budgets:
-      ${budgetSummary || "No specific budgets set."}
+    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    
+    const prompt = `You are a smart financial AI. Analyze these transactions and budgets.
+    
+    Context:
+    ${comparisonText}
+    
+    Budgets:
+    ${budgetSummary || "No specific budgets set."}
 
-      Recent Transactions (Last 50):
-      ${expenseSummary}
+    Recent Transactions (Last 50):
+    ${expenseSummary}
 
-      Tasks:
-      1. Summary: Compare spending to last week/month. E.g., "You spent 25% more on food this week."
-      2. Prediction: Predict total spending for the next 30 days based on these habits.
-      3. Anomalies: Identify unusually high transactions, potential double charges, or spikes in categories.
-      4. Tips: Give 3 actionable saving tips.
+    Tasks:
+    1. Summary: Compare spending to last week/month. E.g., "You spent 25% more on food this week."
+    2. Prediction: Predict total spending for the next 30 days based on these habits.
+    3. Anomalies: Identify unusually high transactions, potential double charges, or spikes in categories.
+    4. Tips: Give 3 actionable saving tips.
 
-      Return strictly JSON.`,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            summary: { type: Type.STRING },
-            prediction: {
-              type: Type.OBJECT,
-              properties: {
-                nextMonthTotal: { type: Type.NUMBER },
-                reasoning: { type: Type.STRING },
-                trend: { type: Type.STRING, enum: ['increasing', 'decreasing', 'stable'] }
-              }
-            },
-            anomalies: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  severity: { type: Type.STRING, enum: ['high', 'medium', 'low'] }
-                }
-              }
-            },
-            savingTips: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            }
-          }
+    Return strictly JSON with this structure:
+    {
+      "summary": "string",
+      "prediction": {
+        "nextMonthTotal": number,
+        "reasoning": "string",
+        "trend": "increasing" | "decreasing" | "stable"
+      },
+      "anomalies": [
+        {
+          "title": "string",
+          "description": "string",
+          "severity": "high" | "medium" | "low"
         }
-      }
-    });
+      ],
+      "savingTips": ["string", "string", "string"]
+    }`;
 
-    const text = response.text;
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
     if (!text) return null;
     return JSON.parse(text) as InsightData;
   } catch (error) {
@@ -187,11 +156,9 @@ export const getSpendingInsights = async (transactions: Transaction[], budgets: 
 
 export const suggestCategory = async (description: string): Promise<Category | null> => {
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: `Categorize the expense description "${description}" into exactly one of these categories: Food, Transport, Utilities, Entertainment, Shopping, Health, Travel, Bills, Other. Return only the category name.`,
-        });
-        const text = response.text?.trim();
+        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        const response = await model.generateContent(`Categorize the expense description "${description}" into exactly one of these categories: Food, Transport, Utilities, Entertainment, Shopping, Health, Travel, Bills, Other. Return only the category name.`);
+        const text = response.response.text()?.trim();
         // efficient check against enum values
         const categories = Object.values(Category);
         if (categories.includes(text as Category)) {
@@ -212,68 +179,49 @@ export const analyzeSubscriptions = async (transactions: Transaction[], currentB
     const existingBillsStr = currentBills.map(b => b.name).join(', ');
 
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: `Analyze these expense transactions for potential subscriptions and recurring bills.
-            
-            Transactions:
-            ${expensesStr}
+        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        
+        const prompt = `Analyze these expense transactions for potential subscriptions and recurring bills.
+        
+        Transactions:
+        ${expensesStr}
 
-            Existing Tracked Bills:
-            ${existingBillsStr}
+        Existing Tracked Bills:
+        ${existingBillsStr}
 
-            Task:
-            1. newSubscriptions: Identify recurring payments that are NOT in the existing tracked bills list. Look for patterns in description and amount.
-            2. newSubscriptions: Identify recurring payments that are NOT in the existing tracked bills list. Look for patterns in description and amount.
-            3. priceChanges: Identify services where the most recent payment amount is HIGHER than the previous payment amount for the same service.
-            4. redundant: Identify potential duplicate or unnecessary subscriptions (e.g. having both Spotify and Apple Music, or multiple streaming services that might be redundant).
+        Task:
+        1. newSubscriptions: Identify recurring payments that are NOT in the existing tracked bills list. Look for patterns in description and amount.
+        2. priceChanges: Identify services where the most recent payment amount is HIGHER than the previous payment amount for the same service.
+        3. redundant: Identify potential duplicate or unnecessary subscriptions (e.g. having both Spotify and Apple Music, or multiple streaming services that might be redundant).
 
-            Return strictly JSON.`,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        newSubscriptions: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    name: { type: Type.STRING },
-                                    amount: { type: Type.NUMBER },
-                                    frequency: { type: Type.STRING },
-                                    reason: { type: Type.STRING }
-                                }
-                            }
-                        },
-                        priceChanges: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    name: { type: Type.STRING },
-                                    oldAmount: { type: Type.NUMBER },
-                                    newAmount: { type: Type.NUMBER },
-                                    change: { type: Type.NUMBER }
-                                }
-                            }
-                        },
-                        redundant: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    name: { type: Type.STRING },
-                                    reason: { type: Type.STRING }
-                                }
-                            }
-                        }
-                    }
-                }
+        Return strictly JSON with this structure:
+        {
+          "newSubscriptions": [
+            {
+              "name": "string",
+              "amount": number,
+              "frequency": "string",
+              "reason": "string"
             }
-        });
+          ],
+          "priceChanges": [
+            {
+              "name": "string",
+              "oldAmount": number,
+              "newAmount": number,
+              "change": number
+            }
+          ],
+          "redundant": [
+            {
+              "name": "string",
+              "reason": "string"
+            }
+          ]
+        }`;
 
-        const text = response.text;
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
         if(!text) return null;
         return JSON.parse(text) as SubscriptionAnalysis;
 
@@ -281,4 +229,4 @@ export const analyzeSubscriptions = async (transactions: Transaction[], currentB
         console.error("Subscription analysis failed:", error);
         return null;
     }
-}
+};
