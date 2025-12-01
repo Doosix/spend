@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { Transaction, Category, Budget, BudgetPeriod, Bill, AppNotification, Goal } from '../types';
-import { ArrowUpRight, ArrowDownLeft, Edit2, Check, AlertTriangle, Settings, Plus, Sparkles, Calendar, ChevronRight, Bell, X, CheckCircle, Info, PieChart as PieIcon, Target, MoreHorizontal } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Edit2, Check, AlertTriangle, Plus, Sparkles, ChevronRight, Bell, CheckCircle, Info, PieChart as PieIcon } from 'lucide-react';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -453,7 +453,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         dataKey="value"
                         stroke="none"
                     >
-                        {expenseData.map((entry, index) => (
+                        {expenseData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                     </Pie>

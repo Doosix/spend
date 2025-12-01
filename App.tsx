@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Tab, Transaction, Budget, Goal, Bill, Category, SavedFilter, AppNotification } from './types';
+import { Tab, Transaction, Budget, Goal, Bill, SavedFilter, AppNotification } from './types';
 import Dashboard from './components/Dashboard';
 import AddTransaction from './components/AddExpense';
 import TransactionList from './components/ExpenseList';
@@ -8,7 +8,7 @@ import Reports from './components/Reports';
 import Goals from './components/Goals';
 import Bills from './components/Bills';
 import { api } from './services/api'; 
-import { LayoutDashboard, Plus, Target, Calendar, PieChart, Loader2, List, History } from 'lucide-react';
+import { LayoutDashboard, Plus, Calendar, PieChart, Loader2, History } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 const App: React.FC = () => {
@@ -126,7 +126,7 @@ const App: React.FC = () => {
   };
 
   // --- Bill Logic (Run once on load) ---
-  const runBillLogic = (currentBills: Bill[], currentTxs: Transaction[], currentNotifs: AppNotification[]) => {
+  const runBillLogic = (currentBills: Bill[], _currentTxs: Transaction[], currentNotifs: AppNotification[]) => {
       const today = new Date();
       let updatedBills = [...currentBills];
       let newTransactions: Transaction[] = [];
@@ -162,7 +162,7 @@ const App: React.FC = () => {
                   amount: bill.amount,
                   description: `${bill.name} (Auto-Pay)`,
                   category: bill.category,
-                  date: today.toISOString().split('T')[0],
+                  date: (today.toISOString().split('T')[0] || new Date().toISOString().split('T')[0]) as string,
                   createdAt: Date.now(),
                   billId: bill.id,
                   isRecurring: true
@@ -333,7 +333,7 @@ const App: React.FC = () => {
           amount: bill.amount,
           description: bill.name,
           category: bill.category,
-          date: new Date().toISOString().split('T')[0],
+          date: (new Date().toISOString().split('T')[0] || new Date().toISOString().split('T')[0]) as string,
           createdAt: Date.now(),
           billId: bill.id,
           isRecurring: true

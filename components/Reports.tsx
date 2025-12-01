@@ -1,9 +1,9 @@
 
 
 import React, { useState, useMemo } from 'react';
-import { Transaction, Category } from '../types';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Download, FileText, Filter, Calendar } from 'lucide-react';
+import { Transaction } from '../types';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Download, FileText, Filter } from 'lucide-react';
 import { jsPDF } from "jspdf";
 
 interface ReportsProps {
@@ -277,7 +277,7 @@ const Reports: React.FC<ReportsProps> = ({ transactions }) => {
                                 paddingAngle={5}
                                 dataKey="value"
                             >
-                                {pieData.map((entry, index) => (
+                                {pieData.map((_, index) => (
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>

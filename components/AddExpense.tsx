@@ -101,12 +101,13 @@ const AddTransaction: React.FC<AddTransactionProps> = ({
       amount: parseFloat(amount),
       description,
       category,
-      date,
+      date: (date || new Date().toISOString().split('T')[0]) as string,
       createdAt: transactionToEdit ? transactionToEdit.createdAt : Date.now(),
-      notes: notes || undefined,
-      attachment: attachment,
-      isRecurring,
-      goalId: (category === Category.SAVINGS && selectedGoalId) ? selectedGoalId : undefined
+      ...(notes && { notes }),
+      ...(attachment && { attachment }),
+      ...(isRecurring && { isRecurring }),
+      ...((category === Category.SAVINGS && selectedGoalId) && { goalId: selectedGoalId }),
+      ...(transactionToEdit?.billId && { billId: transactionToEdit.billId })
     };
 
     if (transactionToEdit && onUpdate) {
@@ -139,9 +140,9 @@ const AddTransaction: React.FC<AddTransactionProps> = ({
 
             // Duplicate Detection
             if (data.amount && data.date) {
-                const potentialDup = transactions.find(t => 
-                    t.type === 'expense' && 
-                    Math.abs(t.amount - data.amount) < 0.01 && 
+                const potentialDup = transactions.find(t =>
+                    t.type === 'expense' &&
+                    data.amount && Math.abs(t.amount - data.amount) < 0.01 &&
                     t.date === data.date &&
                     t.id !== transactionToEdit?.id
                 );

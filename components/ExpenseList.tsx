@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Transaction, Category, IncomeCategory, FilterConfig, SavedFilter } from '../types';
-import { Coffee, ShoppingBag, Car, Zap, Activity, HelpCircle, Film, Trash2, Briefcase, TrendingUp, Gift, ChevronDown, ChevronUp, FileText, Image as ImageIcon, Plane, Receipt, Search, Filter, X, Save, Tag, SlidersHorizontal, Edit2, MoreVertical } from 'lucide-react';
+import { Coffee, ShoppingBag, Car, Zap, Activity, HelpCircle, Film, Trash2, Briefcase, TrendingUp, Gift, FileText, Image as ImageIcon, Plane, Search, X, Save, Tag, SlidersHorizontal, Edit2, MoreVertical } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 interface TransactionListProps {
@@ -95,7 +95,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, onDelet
     const groups: { [key: string]: Transaction[] } = {};
     filteredTransactions.forEach(e => {
       if (!groups[e.date]) groups[e.date] = [];
-      groups[e.date].push(e);
+      groups[e.date]!.push(e);
     });
     // Sort dates descending
     return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
@@ -339,7 +339,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, onDelet
                         {new Date(date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                     </h3>
                     <div className="space-y-3">
-                    {items.map((t, idx) => {
+                    {items.map((t) => {
                         const isExpanded = expandedId === t.id;
                         const isIncome = t.type === 'income';
 

@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Transaction, Budget, InsightData } from '../types';
 import { getSpendingInsights } from '../services/geminiService';
-import { Sparkles, RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle, Lightbulb, Activity, ArrowUp, ArrowDown } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import { Sparkles, RefreshCw, TrendingUp, TrendingDown, Minus, AlertTriangle, Lightbulb, Activity } from 'lucide-react';
 
 interface InsightsProps {
   expenses: Transaction[]; // Named expenses prop but expects full list

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Bill, Category, Transaction, SubscriptionAnalysis } from '../types';
 import { analyzeSubscriptions } from '../services/geminiService';
-import { Plus, Trash2, Calendar, Zap, AlertCircle, CheckCircle, Search, TrendingUp, AlertTriangle, RefreshCcw } from 'lucide-react';
+import { Plus, Trash2, Zap, CheckCircle, Search } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 interface BillsProps {

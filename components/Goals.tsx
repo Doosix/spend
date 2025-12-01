@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Goal, Transaction, Category } from '../types';
-import { Plus, Trash2, Target, Calendar, CheckCircle2, AlertCircle, ArrowRight, DollarSign, Wallet } from 'lucide-react';
+import { Plus, Trash2, Target } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 interface GoalsProps {
@@ -35,7 +35,7 @@ const Goals: React.FC<GoalsProps> = ({ goals, setGoals, onAddTransaction }) => {
           targetAmount: parseFloat(newGoalAmount),
           currentAmount: 0,
           deadline: newGoalDeadline,
-          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          color: COLORS[Math.floor(Math.random() * COLORS.length)] || 'bg-blue-500',
           icon: 'target'
       };
 
@@ -63,7 +63,7 @@ const Goals: React.FC<GoalsProps> = ({ goals, setGoals, onAddTransaction }) => {
           amount: amount,
           description: `Deposit: ${goal.name}`,
           category: Category.SAVINGS,
-          date: new Date().toISOString().split('T')[0],
+          date: new Date().toISOString().split('T')[0] as string,
           createdAt: Date.now(),
           goalId: goal.id,
           isRecurring: false // User can make this recurring via the Add page later if they want
