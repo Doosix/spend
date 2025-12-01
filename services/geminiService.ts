@@ -1,8 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Category, Transaction, ReceiptData, Budget, InsightData, SubscriptionAnalysis, Bill } from "../types";
 
-// Support both Process Env (Node/Webpack) and Import Meta (Vite)
-const apiKey = process.env.API_KEY || (import.meta as any).env?.VITE_GOOGLE_API_KEY || '';
+// Use Vite environment variable for browser environment
+const apiKey = (import.meta as any).env?.VITE_GOOGLE_API_KEY || '';
 const ai = new GoogleGenerativeAI({ apiKey });
 
 // Helper to convert blob/file to base64
@@ -59,9 +59,14 @@ export const compressImage = async (file: File, maxWidth = 800, quality = 0.6): 
 
 export const parseReceiptImage = async (base64Image: string): Promise<ReceiptData> => {
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    if (!apiKey) {
+      console.error("Google API key is missing. Please set VITE_GOOGLE_API_KEY in your .env file.");
+      return {};
+    }
     
-    const prompt = `Analyze this receipt image. Extract the total amount, the date, and the merchant name (use as description). 
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    
+    const prompt = `Analyze this receipt image. Extract the total amount, the date, and the merchant name (use as description).
     Also infer the most likely category from this list: Food, Transport, Utilities, Entertainment, Shopping, Health, Travel, Bills, Other.
     Return JSON with the following structure: {"amount": number, "date": "YYYY-MM-DD format", "merchant": "string", "category": "string"}`;
 
@@ -107,7 +112,7 @@ export const getSpendingInsights = async (transactions: Transaction[], budgets: 
   const comparisonText = `This week total: ₹${thisWeekTotal}. Last week total: ₹${lastWeekTotal}.`;
 
   try {
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
     const prompt = `You are a smart financial AI. Analyze these transactions and budgets.
     
@@ -156,7 +161,7 @@ export const getSpendingInsights = async (transactions: Transaction[], budgets: 
 
 export const suggestCategory = async (description: string): Promise<Category | null> => {
     try {
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
         const response = await model.generateContent(`Categorize the expense description "${description}" into exactly one of these categories: Food, Transport, Utilities, Entertainment, Shopping, Health, Travel, Bills, Other. Return only the category name.`);
         const text = response.response.text()?.trim();
         // efficient check against enum values
@@ -179,7 +184,7 @@ export const analyzeSubscriptions = async (transactions: Transaction[], currentB
     const existingBillsStr = currentBills.map(b => b.name).join(', ');
 
     try {
-        const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
         
         const prompt = `Analyze these expense transactions for potential subscriptions and recurring bills.
         
